@@ -32,6 +32,24 @@ after_fork do |server, worker|
 end
 CODE
 
+file 'lib/tasks/assets_nodigest.rake', <<-CODE
+# https://gist.github.com/eric1234/5692456
+#  
+require 'fileutils'
+ 
+task "assets:precompile" do
+#Create nondigest versions of all digest assets, overload
+#the assets:precompile task so it gets compiled into slug
+#in Heroku
+  fingerprint = /\-[0-9a-f]{32}\./
+  for file in Dir["public/assets/**/*"]
+    next unless file =~ fingerprint
+    nondigest = file.sub fingerprint, '.'
+    FileUtils.cp file, nondigest, verbose: true
+  end
+end
+CODE
+
 file 'Procfile', "web: bundle exec unicorn -p $PORT -c ./config/unicorn.rb"
 
 gem 'pg'
